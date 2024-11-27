@@ -56,6 +56,7 @@ export class WebSocketClient {
         break;
 
       case "INCOMING_MESSAGE":
+        if (!this.currentOutoingContact) return;
         addReceivedMessageToPage(event.message);
 
       case "MESSAGE_HISTORY":
