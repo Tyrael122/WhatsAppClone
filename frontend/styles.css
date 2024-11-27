@@ -1,0 +1,111 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f8f9fa;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.container {
+  display: flex;
+  width: 900px;
+  height: 600px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background-color: white;
+}
+
+.contacts {
+  width: 250px;
+  border-right: 1px solid #ddd;
+  padding: 10px;
+}
+
+.contacts .header h2 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.contact {
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.contact:hover {
+  background-color: #f1f1f1;
+}
+
+.chat {
+  flex-grow: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  background-color: #f1f1f1;
+}
+
+.chat-header h3 {
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+.message {
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 10px;
+  max-width: 70%;
+}
+
+.message.sent {
+  background-color: #dcf8c6;
+  align-self: flex-end;
+}
+
+.message.received {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  align-self: flex-start;
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+}
+
+.input-container input {
+  width: 80%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  outline: none; /* Removes the default focus outline */
+  border: none; /* Removes the border when focused */
+}
+
+.input-container button {
+  padding: 10px 15px;
+  margin-left: 10px;
+  background-color: #007bff;
+  border: none;
+  color: white;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.input-container button:hover {
+  background-color: #0056b3;
+}
