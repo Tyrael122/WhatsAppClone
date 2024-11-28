@@ -1,16 +1,20 @@
 import WebSocket from "ws";
 import {
   Chat,
+  CreateGroupRequest,
   MessageHistoryRequest,
+  OutgoingChat,
   RegisterEvent,
   WhatsAppMessageEvent,
 } from "./model";
-import { broadcastExcludingItself } from "./server";
+import { broadcastExcludingItself as broadcast } from "./server";
 
 export class EventService {
   userConnectionMap: Map<string, WebSocket> = new Map();
 
   chatMap: Map<string, Chat> = new Map();
+
+  groups: string[] = [];
 
   handleRegistering(event: RegisterEvent, wsConnection: WebSocket) {
     const userName = event.name;
@@ -18,16 +22,7 @@ export class EventService {
 
     this.userConnectionMap.set(userName, wsConnection);
 
-    const registeredUsers = this.#obtainExistingUsers();
-
-    wsConnection.send(
-      JSON.stringify(this.#createAddUserEvent(registeredUsers))
-    );
-
-    broadcastExcludingItself(
-      JSON.stringify(this.#createAddUserEvent(registeredUsers)),
-      wsConnection
-    );
+    this.#broadcastChatList();
   }
 
   handleMessage(event: WhatsAppMessageEvent) {
@@ -52,24 +47,24 @@ export class EventService {
       message: event.message,
     });
 
-    for (const user of chat.users) {
-      if (user === event.from) continue;
+    const incomingMessageEvent = JSON.stringify({
+      eventType: "INCOMING_MESSAGE",
+      from: event.from,
+      to: chatId,
+      message: event.message,
+    });
 
-      this.#sendToUser(
-        user,
-        JSON.stringify({
-          eventType: "INCOMING_MESSAGE",
-          message: event.message,
-        })
-      );
-    }
+    this.#sendIncomingMessageEventToChat(chat, incomingMessageEvent, event);
   }
 
   handleMessageHistoryRequest(
     event: MessageHistoryRequest,
     wsConnection: WebSocket
   ) {
-    const messages = this.chatMap.get(event.chat)?.messages;
+    const chat = this.chatMap.get(event.chat);
+    if (!chat) return;
+
+    const messages = chat.messages;
     if (!messages) return;
 
     wsConnection.send(
@@ -77,8 +72,44 @@ export class EventService {
     );
   }
 
-  #obtainExistingUsers(): string[] {
-    let registeredUsers = [];
+  handleCreateGroupRequest(event: CreateGroupRequest) {
+    const chatId = event.name;
+
+    this.groups.push(event.name);
+
+    const groupChat = new Chat(chatId, []);
+    groupChat.setIsOpenGroup(true);
+
+    this.chatMap.set(chatId, groupChat);
+
+    this.#broadcastChatList();
+  }
+
+  #broadcastChatList() {
+    const existingChats = this.#obtainExistingChats();
+
+    broadcast(JSON.stringify(this.#createAddUserEvent(existingChats)));
+  }
+
+  #sendIncomingMessageEventToChat(
+    chat: Chat,
+    incomingMessageEvent: string,
+    event: WhatsAppMessageEvent
+  ) {
+    if (chat.isOpenGroup) {
+      broadcast(incomingMessageEvent);
+      return;
+    }
+
+    for (const user of chat.users) {
+      if (user === event.from) continue;
+
+      this.#sendToUser(user, incomingMessageEvent);
+    }
+  }
+
+  #obtainExistingChats(): OutgoingChat[] {
+    let chats = [];
 
     for (const [
       existingUsername,
@@ -86,14 +117,18 @@ export class EventService {
     ] of this.userConnectionMap.entries()) {
       if (existingConnection.readyState !== WebSocket.OPEN) continue;
 
-      registeredUsers.push(existingUsername);
+      chats.push({ isGroup: false, name: existingUsername });
     }
 
-    return registeredUsers;
+    for (const group of this.groups) {
+      chats.push({ isGroup: true, name: group });
+    }
+
+    return chats;
   }
 
-  #createAddUserEvent(usernames: string[]) {
-    return { eventType: "SYNC_USERS", registeredUsers: usernames };
+  #createAddUserEvent(chats: OutgoingChat[]) {
+    return { eventType: "SYNC_USERS", chats: chats };
   }
 
   #sendToUser(user: string, data: string) {

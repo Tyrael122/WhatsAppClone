@@ -1,6 +1,6 @@
 import {
   clearAllContacts,
-  addContact,
+  addContactToPage,
   addReceivedMessageToPage,
   addSentMessageToPage,
   userNumber,
@@ -9,7 +9,9 @@ import {
 
 export class WebSocketClient {
   socket = new WebSocket("ws://localhost:8080");
-  currentOutoingContact;
+  currentOutoingChat;
+
+  chatsMap = new Map();
 
   constructor() {
     this.socket.addEventListener("message", (event) => {
@@ -28,21 +30,32 @@ export class WebSocketClient {
 
     addSentMessageToPage(inputMessage);
 
+    const isGroup = this.chatsMap.get(this.currentOutoingChat);
+
     this.socket.send(
       JSON.stringify({
         eventType: "MESSAGE",
         from: userNumber,
-        to: this.currentOutoingContact,
-        isGroup: false,
+        to: this.currentOutoingChat,
+        isGroup: isGroup,
         message: inputMessage,
       })
     );
   }
 
-  handleCurrentOutgoingContactChanged(userName) {
-    this.currentOutoingContact = userName;
+  handleCurrentOutgoingChatChanged(chatName) {
+    this.currentOutoingChat = chatName;
 
-    this.#requestMessageHistory();
+    this.#requestMessageHistory(chatName);
+  }
+
+  requestGroupCreation(name) {
+    this.socket.send(
+      JSON.stringify({
+        eventType: "CREATE_GROUP",
+        name: name,
+      })
+    );
   }
 
   #handleEventReceived(event) {
@@ -50,30 +63,38 @@ export class WebSocketClient {
       return;
     }
 
-    switch (event.eventType) {
-      case "SYNC_USERS":
-        this.#syncContacts(event.registeredUsers);
-        break;
+    const eventType = event.eventType;
 
-      case "INCOMING_MESSAGE":
-        if (!this.currentOutoingContact) return;
-        addReceivedMessageToPage(event.message);
+    if (eventType === "SYNC_USERS") {
+      this.#syncContacts(event.chats);
+      return;
+    }
 
-      case "MESSAGE_HISTORY":
-        this.#addMessagesToPage(event.messages);
+    if (eventType === "INCOMING_MESSAGE") {
+      if (!this.currentOutoingChat) return;
+      if (event.from === userNumber) return;
+      if (event.to !== this.currentOutoingChat) return;
+      addReceivedMessageToPage(event.message);
+      return;
+    }
 
-      default:
-        break;
+    if (eventType === "MESSAGE_HISTORY") {
+      this.#addMessagesToPage(event.messages);
+      return;
     }
   }
 
-  #syncContacts(newContacts) {
+  #syncContacts(chats) {
     clearAllContacts();
 
-    for (const contact of newContacts) {
-      if (contact === userNumber) continue;
+    this.chatsMap.clear();
 
-      addContact(contact);
+    for (const chat of chats) {
+      if (chat.name === userNumber) continue;
+
+      this.chatsMap.set(chat.name, chat.isGroup);
+
+      addContactToPage(chat.name);
     }
   }
 
@@ -87,11 +108,15 @@ export class WebSocketClient {
     }
   }
 
-  #requestMessageHistory() {
+  #requestMessageHistory(chatname) {
+    const chatId = this.chatsMap.get(chatname)
+      ? chatname
+      : [userNumber, chatname].sort().join("-");
+
     this.socket.send(
       JSON.stringify({
         eventType: "MESSAGE_HISTORY_REQUEST",
-        chat: [userNumber, this.currentOutoingContact].sort().join("-"),
+        chat: chatId,
       })
     );
   }

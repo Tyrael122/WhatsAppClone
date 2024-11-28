@@ -1,5 +1,6 @@
 import WebSocket from "ws";
 import {
+  CreateGroupRequest,
   IncomingEventType,
   MessageHistoryRequest,
   RegisterEvent,
@@ -38,30 +39,36 @@ function handleRawData(data: WebSocket.RawData, wsConnection: WebSocket) {
 }
 
 function handleEvent(event: WhatsAppEvent, wsConnection: WebSocket) {
-  switch (event.eventType) {
-    case IncomingEventType.MESSAGE:
-      eventService.handleMessage(event as WhatsAppMessageEvent);
-      break;
-    case IncomingEventType.REGISTER:
-      eventService.handleRegistering(event as RegisterEvent, wsConnection);
+  const eventType = event.eventType;
 
-    case IncomingEventType.MESSAGE_HISTORY_REQUEST:
-      eventService.handleMessageHistoryRequest(
-        event as MessageHistoryRequest,
-        wsConnection
-      );
+  if (eventType === IncomingEventType.MESSAGE) {
+    eventService.handleMessage(event as WhatsAppMessageEvent);
+    return;
+  }
 
-    default:
-      break;
+  if (eventType === IncomingEventType.REGISTER) {
+    eventService.handleRegistering(event as RegisterEvent, wsConnection);
+    return;
+  }
+
+  if (eventType === IncomingEventType.MESSAGE_HISTORY_REQUEST) {
+    eventService.handleMessageHistoryRequest(
+      event as MessageHistoryRequest,
+      wsConnection
+    );
+    return;
+  }
+
+  if (eventType === IncomingEventType.CREATE_GROUP) {
+    eventService.handleCreateGroupRequest(event as CreateGroupRequest);
+    return;
   }
 }
 
-export function broadcastExcludingItself(data: string, originator: WebSocket) {
+export function broadcastExcludingItself(data: string) {
   wss.clients.forEach((client) => {
-    if (client !== originator) {
-      console.log(`Broadcasting ${data} to ${client}`);
+    console.log(`Broadcasting ${data} to ${client}`);
 
-      client.send(data, { binary: false });
-    }
+    client.send(data, { binary: false });
   });
 }

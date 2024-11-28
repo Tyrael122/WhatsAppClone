@@ -17,16 +17,26 @@ export interface MessageHistoryRequest extends WhatsAppEvent {
   chat: string;
 }
 
+export interface CreateGroupRequest extends WhatsAppEvent {
+  name: string;
+}
+
 export enum IncomingEventType {
   REGISTER = "REGISTER",
   MESSAGE = "MESSAGE",
   MESSAGE_HISTORY_REQUEST = "MESSAGE_HISTORY_REQUEST",
+  CREATE_GROUP = "CREATE_GROUP",
 }
 
 export interface Chat {
   id: string;
   users: string[];
   messages: Message[];
+}
+
+export interface OutgoingChat {
+  isGroup: boolean,
+  name: string
 }
 
 export interface Message {
@@ -36,12 +46,17 @@ export interface Message {
 
 export class Chat {
   id: string;
+  isOpenGroup: boolean = false;
   users: string[];
   messages: Message[] = [];
 
   constructor(id: string, users: string[]) {
     this.id = id;
     this.users = users;
+  }
+
+  setIsOpenGroup(value: boolean) {
+    this.isOpenGroup = value;
   }
 
   addUser(user: string) {

@@ -23,6 +23,9 @@ body {
 }
 
 .contacts {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   width: 250px;
   border-right: 1px solid #ddd;
   padding: 10px;
@@ -107,5 +110,23 @@ body {
 }
 
 .input-container button:hover {
+  background-color: #0056b3;
+}
+
+.footer {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.footer #createGroupBtn {
+  padding: 10px;
+  border: none;
+  border-radius: 20px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+}
+
+.footer #createGroupBtn:hover {
   background-color: #0056b3;
 }

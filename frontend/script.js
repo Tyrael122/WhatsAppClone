@@ -70,27 +70,19 @@ function handleContactClick(event) {
     const messagesContainer = document.getElementById("messages");
     messagesContainer.innerHTML = ""; // Clear the messages div
 
-    socket.handleCurrentOutgoingContactChanged(contactNumber);
+    socket.handleCurrentOutgoingChatChanged(contactNumber);
   }
 }
 
 export function clearAllContacts() {
-  const contactsContainer = document.querySelector('.contacts');
-  
-  if (contactsContainer) {
-    // Clear all content except the header
-    const header = contactsContainer.querySelector('.header');
-    contactsContainer.innerHTML = '';
-    if (header) {
-      contactsContainer.appendChild(header);
-    }
-  }  
+  const contactsContainer = document.querySelector("#contactsList");
+  contactsContainer.innerHTML = "";
 }
 
 // Function to add a new contact
-export function addContact(phoneNumber) {
+export function addContactToPage(phoneNumber) {
   // Select the contacts container
-  const contactsDiv = document.querySelector(".contacts");
+  const contactsDiv = document.querySelector("#contactsList");
 
   // Create a new contact div
   const contactDiv = document.createElement("div");
@@ -111,6 +103,21 @@ export function addContact(phoneNumber) {
   contactsDiv.appendChild(contactDiv);
 }
 
+// Function to handle the group creation popup
+function openCreateGroupPopup() {
+  // Open a prompt to get the group name
+  const groupName = window.prompt("Enter the name of the new group:");
+
+  if (groupName) {
+    // Logic to handle the created group
+    console.log(`Group "${groupName}" created successfully!`);
+
+    socket.requestGroupCreation(groupName);
+  } else {
+    console.log("Group creation cancelled.");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   document
     .getElementById("sendBtn")
@@ -125,4 +132,7 @@ document.addEventListener("DOMContentLoaded", function () {
       socket.sendMessage();
     }
   });
+
+  const createGroupBtn = document.getElementById("createGroupBtn");
+  createGroupBtn.addEventListener("click", openCreateGroupPopup);
 });
